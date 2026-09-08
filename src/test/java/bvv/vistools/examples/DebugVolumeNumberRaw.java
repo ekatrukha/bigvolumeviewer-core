@@ -23,10 +23,11 @@ public class DebugVolumeNumberRaw
 		}		
 		List< BvvStackSource< ? > > sources = BvvFunctions.show( spimData );
 		final BvvSource source = sources.get(0);
-		for(int i = 0; i < 15; i++)
+
+		for(int i = 0; i < 20; i++)
 		{
 			BvvFunctions.show( spimData, Bvv.options().addTo( source ));
-			System.out.println( "Volume " + Integer.toString( i+2 ));
+			System.out.println( "Volume " + Integer.toString( i + 2 ));
 		}
 	}
 }

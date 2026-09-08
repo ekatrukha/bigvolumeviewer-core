@@ -54,6 +54,7 @@ import org.joml.Vector2f;
 import org.joml.Vector4f;
 import bvv.core.backend.GpuContext;
 import bvv.core.backend.Texture;
+import bvv.core.backend.Texture.InternalFormat;
 import bvv.core.backend.Texture2D;
 import bvv.core.dither.DitherBuffer;
 
@@ -72,6 +73,11 @@ public class MultiVolumeShaderMip
 	private final SegmentedShader prog;
 	private final VolumeSegment[] volumeSegments;
 	private final ConverterSegment[] converterSegments;
+	
+	// Global Sampler Locations
+	//private final UniformSampler uniformGlobalLut;
+    private final UniformSampler uniformCacheR8;
+    private final UniformSampler uniformCacheR16;
 
 	private final UniformMatrix4f uniformIpv;
 	private final Uniform2f uniformViewportSize;
@@ -117,12 +123,15 @@ public class MultiVolumeShaderMip
 	public MultiVolumeShaderMip( VolumeShaderSignature signature, final boolean useDepthTexture, final double degrade,
 			final Map< SegmentType, SegmentTemplate > segments,
 			final SegmentConsumer runBeforeBinding,
-			final String depthTextureName )
+			final String depthTextureName,
+			final TextureCache cache8,
+			final TextureCache cache16)
 	{
 		this.signature = signature;
 		this.useDepthTexture = useDepthTexture;
 		this.degrade = degrade;
-		this.sceneDepthTextureName = depthTextureName;
+		this.sceneDepthTextureName = depthTextureName;	
+		
 
 		final int numVolumes = signature.getVolumeSignatures().size();
 
@@ -166,6 +175,18 @@ public class MultiVolumeShaderMip
 				accumulate = templateAccumulateMipBlocks.instantiate();
 				instancedSegments.put( SegmentType.AccumulatorMultiresolution, accumulate );
 				sampleVolume = templateVolBlocks.instantiate();
+				switch ( volumeSignature.getPixelType() )
+				{
+				case UBYTE:
+					sampleVolume.insert( "cacheType", 
+							SegmentTemplate.fromCode("    return texture( u_CacheR8, c0 ).r;").instantiate() );
+					break;
+				case USHORT:
+					sampleVolume.insert( "cacheType", 
+							SegmentTemplate.fromCode("    return texture( u_CacheR16, c0 ).r;").instantiate() );
+					break;
+				default:
+				}
 				instancedSegments.put( SegmentType.SampleMultiresolutionVolume, sampleVolume );
 				break;
 			case SIMPLE:
@@ -219,6 +240,12 @@ public class MultiVolumeShaderMip
 		uniformNw = prog.getUniform1f( "nw" );
 		uniformFwnw = prog.getUniform1f( "fwnw" );
 		uniformXf = prog.getUniform1f( "xf" );
+		
+		//uniformGlobalLut = prog.getUniformSampler("u_GlobalLut");
+        uniformCacheR8 = prog.getUniformSampler("u_CacheR8");
+        uniformCacheR16 = prog.getUniformSampler("u_CacheR16");
+        uniformCacheR8.set( cache8 );
+        uniformCacheR16.set( cache16 );
 
 		volumeSegments = new VolumeSegment[ numVolumes ];
 		converterSegments = new ConverterSegment[ numVolumes ];
@@ -246,9 +273,9 @@ public class MultiVolumeShaderMip
 //		final StringBuilder vertexShaderCode = prog.getVertexShaderCode();
 //		System.out.println( "vertexShaderCode = " + vertexShaderCode );
 //		System.out.println( "\n\n--------------------------------\n\n" );
-//		final StringBuilder fragmentShaderCode = prog.getFragmentShaderCode();
-//		System.out.println( "fragmentShaderCode = " + fragmentShaderCode );
-//		System.out.println( "\n\n--------------------------------\n\n" );
+		final StringBuilder fragmentShaderCode = prog.getFragmentShaderCode();
+		System.out.println( "fragmentShaderCode = " + fragmentShaderCode );
+		System.out.println( "\n\n--------------------------------\n\n" );
 	}
 
 	public static Map< SegmentType, SegmentTemplate > getDefaultSegments( boolean useDepthTexture )
@@ -257,9 +284,9 @@ public class MultiVolumeShaderMip
 
 		segments.put( SegmentType.SampleMultiresolutionVolume, new SegmentTemplate(
 				"sample_volume_blocks.frag",
-				"volumeCache", "blockSize", "paddedBlockSize", "cachePadOffset", "cacheSize",
+				 "blockSize", "paddedBlockSize", "cachePadOffset", "cacheSize",
 				"im", "sourcemin", "sourcemax", "intersectBoundingBox",
-				"lutSampler", "blockScales", "lutSize", "lutOffset", "sampleVolume" ) );
+				"lutSampler", "blockScales", "lutSize", "lutOffset", "sampleVolume", "cacheType" ) );
 		segments.put( SegmentType.SampleVolume, new SegmentTemplate(
 				"sample_volume_simple.frag",
 				"im", "sourcemax", "intersectBoundingBox",
@@ -290,9 +317,11 @@ public class MultiVolumeShaderMip
 		return segments;
 	}
 
-	public MultiVolumeShaderMip( VolumeShaderSignature signature, final boolean useDepthTexture, final double degrade )
+	public MultiVolumeShaderMip( VolumeShaderSignature signature, final boolean useDepthTexture, final double degrade, 	
+			final TextureCache cache8,
+			final TextureCache cache16 )
 	{
-		this( signature, useDepthTexture, degrade, getDefaultSegments( useDepthTexture ), null, "sceneDepth" );
+		this( signature, useDepthTexture, degrade, getDefaultSegments( useDepthTexture ), null, "sceneDepth", cache8, cache16);
 	}
 
 	public void setDepthTexture( Texture2D depth )
@@ -571,7 +600,6 @@ public class MultiVolumeShaderMip
 
 	static class VolumeBlocksSegment extends VolumeSegment
 	{
-		private final UniformSampler uniformVolumeCache;
 		private final Uniform3f uniformBlockSize;
 		private final Uniform3f uniformPaddedBlockSize;
 		private final Uniform3f uniformCachePadOffset;
@@ -588,7 +616,6 @@ public class MultiVolumeShaderMip
 		{
 			super( volume );
 
-			uniformVolumeCache = prog.getUniformSampler(volume, "volumeCache" );
 			uniformBlockSize = prog.getUniform3f(volume, "blockSize" );
 			uniformPaddedBlockSize = prog.getUniform3f(volume, "paddedBlockSize" );
 			uniformCachePadOffset = prog.getUniform3f(volume, "cachePadOffset" );
@@ -611,7 +638,7 @@ public class MultiVolumeShaderMip
 			final int[] bs = spec.blockSize();
 			final int[] pbs = spec.paddedBlockSize();
 			final int[] bo = spec.padOffset();
-			uniformVolumeCache.set( cache );
+			
 			uniformBlockSize.set( bs[ 0 ], bs[ 1 ], bs[ 2 ] );
 			uniformPaddedBlockSize.set( pbs[ 0 ], pbs[ 1 ], pbs[ 2 ] );
 			uniformCachePadOffset.set( bo[ 0 ], bo[ 1 ], bo[ 2 ] );
@@ -625,6 +652,7 @@ public class MultiVolumeShaderMip
 			uniformIm.set( blocks.getIms() );
 			uniformSourcemin.set( blocks.getSourceLevelMin() );
 			uniformSourcemax.set( blocks.getSourceLevelMax() );
+
 		}
 	}
 

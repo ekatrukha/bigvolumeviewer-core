@@ -247,7 +247,7 @@ public class VolumeRenderer
 
 	private MultiVolumeShaderMip createMultiVolumeShader( final VolumeShaderSignature signature )
 	{
-		return new MultiVolumeShaderMip( signature, true, 1.0 );
+		return new MultiVolumeShaderMip( signature, true, 1.0, cacheR8.textureCache(), cacheR16.textureCache());
 	}
 
 	public void init( final GL3 gl )

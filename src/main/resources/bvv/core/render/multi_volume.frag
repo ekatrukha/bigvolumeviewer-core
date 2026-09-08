@@ -5,7 +5,8 @@ uniform mat4 ipv;
 uniform float fwnw;
 uniform float nw;
 
-
+uniform sampler3D u_CacheR8;
+uniform sampler3D u_CacheR16;
 
 // intersect ray with a box
 // http://www.siggraph.org/education/materials/HyperGraph/raytrace/rtinter3.htm
