@@ -32,16 +32,16 @@ public class DebugVolumeNumberRaw
 		final List<SourceAndConverter<?>> sources = new ArrayList<>();
 		BigDataViewer.initSetups( spimData, new ArrayList<>(), sources );
 
-
-		Source<?> source = sources.get(0).getSpimSource();
+		final Source<?> source = sources.get(0).getSpimSource();
 		final Bvv bvv = BvvFunctions.show(BvvOptions.options().frameTitle( "Test max number of volumes" ));
 		int nMaxVolumesToTry = 30;
 		int[] bestGrid = findOptimalGridDimensions(nMaxVolumesToTry);
 		int nx = bestGrid[0];
         int ny = bestGrid[1];
-        double spacingX = 10 * 1.2;
-        double spacingY = 10 * 1.2;
-        double spacingZ = 10 * 1.2;
+        double coeff = 1.5;
+        double spacingX = 10 * coeff;
+        double spacingY = 10 * coeff;
+        double spacingZ = 10 * coeff;
 		for (int i = 0; i < nMaxVolumesToTry; i++) {
             int gridX = i % nx;
             int gridY = (i / nx) % ny;
