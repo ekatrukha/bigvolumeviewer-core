@@ -35,7 +35,7 @@ public class DebugVolumeNumberRaw
 
 		Source<?> source = sources.get(0).getSpimSource();
 		final Bvv bvv = BvvFunctions.show(BvvOptions.options().frameTitle( "Test max number of volumes" ));
-		int nMaxVolumesToTry = 30;
+		int nMaxVolumesToTry = 15;
 		int[] bestGrid = findOptimalGridDimensions(nMaxVolumesToTry);
 		int nx = bestGrid[0];
         int ny = bestGrid[1];
