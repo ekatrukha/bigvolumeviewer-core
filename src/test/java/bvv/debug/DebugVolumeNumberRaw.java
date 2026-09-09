@@ -1,6 +1,5 @@
 package bvv.debug;
 
-import java.util.ArrayList;
 import java.util.List;
 
 import net.imglib2.Cursor;
@@ -13,17 +12,11 @@ import net.imglib2.type.numeric.ARGBType;
 import net.imglib2.type.numeric.RealType;
 import net.imglib2.type.numeric.integer.UnsignedByteType;
 
-import bdv.BigDataViewer;
-import bdv.spimdata.SpimDataMinimal;
-import bdv.spimdata.XmlIoSpimDataMinimal;
-import bdv.tools.transformation.TransformedSource;
 import bdv.viewer.ConverterSetups;
-import bdv.viewer.Source;
 import bdv.viewer.SourceAndConverter;
 import bvv.vistools.Bvv;
 import bvv.vistools.BvvFunctions;
 import bvv.vistools.BvvOptions;
-import mpicbg.spim.data.SpimDataException;
 
 
 public class DebugVolumeNumberRaw
@@ -105,7 +98,7 @@ public class DebugVolumeNumberRaw
 		final long[] dims = new long[] {nEdge, nEdge, nEdge};
 		final ReadOnlyCachedCellImgFactory factory = new ReadOnlyCachedCellImgFactory(
 				ReadOnlyCachedCellImgOptions.options().cellDimensions( 32, 32, 32 ) );
-			
+		double period = nEdge*0.5 + Math.random() *  nEdge*0.5;
 		final Img< T > cellimg = factory.create( dims, type, cell -> {
 			Cursor< T > cursor = cell.localizingCursor();
 			final double [] pos = new double[3];
@@ -113,7 +106,7 @@ public class DebugVolumeNumberRaw
 			{
 				cursor.fwd();
 				cursor.localize( pos );
-				double val = gyroid(pos, nEdge*0.5, minAmp, maxAmp);
+				double val = gyroid(pos, period, minAmp, maxAmp);
 				cursor.get().setReal( val ); 
 			}
 			//Thread.sleep( 80 );
@@ -122,9 +115,14 @@ public class DebugVolumeNumberRaw
 		return cellimg;
 	}
 	
-	static double gyroid(final double [] pos, final double period, final double minAmp, final double maxAmp) {
+	static double gyroid(final double [] pos, final double period, final double minAmp, final double maxAmp) 
+	{
 		double w = 2.0 * Math.PI / period;
-		double g = Math.sin(pos[0] * w) * Math.cos(pos[1] * w) + Math.sin(pos[1] * w) * Math.cos(pos[2] * w) + Math.sin(pos[2] * w) * Math.cos(pos[0] * w);
+
+		
+		double g =   Math.sin(pos[0] * w ) * Math.cos(pos[1] * w) 
+				   + Math.sin(pos[1] * w ) * Math.cos(pos[2] * w ) 
+				   + Math.sin(pos[2] * w ) * Math.cos(pos[0] * w );
 		g = Math.pow((Math.tanh( g ) + 1) * 0.5, 7);
 		return g  * (maxAmp - minAmp) + minAmp;
 		}
