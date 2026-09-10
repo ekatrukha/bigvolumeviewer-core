@@ -52,6 +52,7 @@ import net.imglib2.type.numeric.ARGBType;
 import org.joml.Matrix4f;
 import org.joml.Matrix4fc;
 import org.joml.Vector2f;
+import org.joml.Vector3f;
 import org.joml.Vector4f;
 import bvv.core.backend.GpuContext;
 import bvv.core.backend.Texture;
@@ -261,6 +262,7 @@ public class MultiVolumeShaderMip
 		fp.insert( "Accumulate", accumulateSegs );
 		final int numCaches = caches.size();
 		fp.insert( "cachesNumber", SegmentTemplate.fromCode("#define CACHES_NUMBER " + Integer.toString( numCaches )).instantiate() );
+		fp.insert( "sourcesNumber", SegmentTemplate.fromCode("#define SOURCES_NUMBER " + Integer.toString( numVolumes )).instantiate() );
 		fp.insert( "multiresVNumber", SegmentTemplate.fromCode("#define MULTIRES_NUMBER " + Integer.toString( nMultiresVolumesNum )).instantiate() );
 		
 		builder.fragment( fp );
@@ -355,7 +357,7 @@ public class MultiVolumeShaderMip
 				"cacheType", "globalZlutOffset", "sampleVolume") );
 		segments.put( SegmentType.SampleVolume, new SegmentTemplate(
 				"sample_volume_simple.frag",
-				"im", "sourcemax", "intersectBoundingBox",
+				"im",  "sourcemin", "sourcemax", "intersectBoundingBox",
 				"volume", "sampleVolume" ) );
 		segments.put( SegmentType.SampleRGBAVolume, new SegmentTemplate(
 				"sample_volume_simple_rgba.frag",
@@ -371,7 +373,7 @@ public class MultiVolumeShaderMip
 				useDepthTexture ? "maxdepthtexture.frag" : "maxdepthone.frag" ) );
 		segments.put( SegmentType.VertexShader, new SegmentTemplate( "multi_volume.vert" ) );
 		segments.put( SegmentType.FragmentShader, new SegmentTemplate(
-				"multi_volume.frag", "cachesNumber", "multiresVNumber",
+				"multi_volume.frag", "cachesNumber", "sourcesNumber", "multiresVNumber",
 				"intersectBoundingBox", "vis", "SampleVolume", "Convert", "Accumulate" ) );
 		segments.put( SegmentType.AccumulatorMultiresolution, new SegmentTemplate(
 				"accumulate_mip_blocks.frag",
@@ -708,6 +710,7 @@ public class MultiVolumeShaderMip
 	{
 		private final UniformSampler uniformVolumeSampler;
 		private final UniformMatrix4f uniformIm;
+		private final Uniform3f uniformSourcemin;
 		private final Uniform3f uniformSourcemax;
 
 		public VolumeSimpleSegment( final SegmentedShader prog, final Segment volume )
@@ -715,6 +718,7 @@ public class MultiVolumeShaderMip
 			super( volume );
 			uniformVolumeSampler = prog.getUniformSampler( volume, "volume" );
 			uniformIm = prog.getUniformMatrix4f( volume, "im" );
+			uniformSourcemin = prog.getUniform3f( volume, "sourcemin" );
 			uniformSourcemax = prog.getUniform3f( volume, "sourcemax" );
 		}
 
@@ -722,6 +726,7 @@ public class MultiVolumeShaderMip
 		{
 			uniformVolumeSampler.set( volume.getVolumeTexture() );
 			uniformIm.set( volume.getIms() );
+			uniformSourcemin.set( new Vector3f() );
 			uniformSourcemax.set( volume.getSourceMax() );
 		}
 	}

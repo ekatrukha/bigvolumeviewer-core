@@ -26,7 +26,7 @@ public class DebugVolumeNumberRaw
 {
 	public static void main( final String[] args )
 	{
-		int nMaxVolumesToTry = 4;
+		int nMaxVolumesToTry = 2;
 		int nVolumeEdge = 10;
 
         double spreadCoeff = 2.5;
@@ -34,6 +34,8 @@ public class DebugVolumeNumberRaw
 		int numThreads = 8;
 		int numQueueLevels = 10;
 		SharedQueue queue = new SharedQueue( numThreads, numQueueLevels );
+		//add
+		
 		
 		final Bvv bvv = BvvFunctions.show(BvvOptions.options().frameTitle( "Test max number of volumes" ));
 

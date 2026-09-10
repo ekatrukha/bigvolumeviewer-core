@@ -4,11 +4,11 @@ uniform vec2 dsp;
 uniform mat4 ipv;
 uniform float fwnw;
 uniform float nw;
-
-
 //$insert{cachesNumber}
+//$insert{sourcesNumber}
 //$insert{multiresVNumber}
 #define NUM_BLOCK_SCALES 10
+
 
 uniform sampler3D u_Caches[CACHES_NUMBER];
 
@@ -20,9 +20,8 @@ uniform vec3 cacheSize;
 uniform usampler3D u_GlobalLut;
 uniform vec3 globalLutSize;
 
-struct VolumeData {
+struct MultiresVolumeData {
     mat4 im;
-    bool visible;
     float globalZlutOffset;
     vec3 lutOffset;
     int blockScaleOffset;
@@ -31,7 +30,17 @@ struct VolumeData {
     vec4 scale;
 };
 
-uniform VolumeData u_volumes[ MULTIRES_NUMBER ];
+struct SourceData {
+    mat4 im;
+    vec3 sourcemin;
+    vec3 sourcemax;
+};
+
+layout(std140) uniform SourceBlock {
+    SourceData u_sources[ SOURCES_NUMBER ];
+};
+
+uniform MultiresVolumeData u_volumes[ MULTIRES_NUMBER ];
 uniform vec3 u_blockScales[ NUM_BLOCK_SCALES * MULTIRES_NUMBER ];
 
 float sampleMultiresVolume( vec4 wpos, int i )
@@ -85,7 +94,7 @@ void main()
 	wfront *= 1 / wfront.w;
 	vec4 wback = ipv * back;
 	wback *= 1 / wback.w;
-
+	bool isIntersected[ SOURCES_NUMBER ];
 	// -- bounding box intersection for all volumes ----------
 	float tnear = 1, tfar = 0, tmax = getMaxDepth(uv);
 	float n, f;
@@ -118,17 +127,7 @@ void main()
 		for (int i = 0; i < numSteps; ++i, step += nw + step * fwnw)
 		{
 			vec4 wpos = mix(wfront, wback, step);
-
 			// $insert{Accumulate}
-			/*
-			inserts something like the following (keys: vis,blockTexture,convert)
-
-			if (vis)
-			{
-				float x = blockTexture(wpos, volumeCache, cacheSize, blockSize, paddedBlockSize, cachePadOffset);
-				v = max(v, convert(x));
-			}
-			*/
 		}
 		FragColor = v;
 	}
