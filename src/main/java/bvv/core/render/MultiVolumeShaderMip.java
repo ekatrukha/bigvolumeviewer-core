@@ -164,13 +164,25 @@ public class MultiVolumeShaderMip
 		final SegmentTemplate templateAccumulateMipBlocks = segments.get( SegmentType.AccumulatorMultiresolution );
 		final SegmentTemplate templateAccumulateMipSimple = segments.get( SegmentType.Accumulator );
 
-		final Segment[] sampleVolumeSegs = new Segment[ numVolumes ];
-		final Segment[] convertSegs = new Segment[ numVolumes ];
-		final Segment[] accumulateSegs = new Segment[ numVolumes ];
-		
+		//calculate number of multires volumes
 		int nMultiresVolumesNum = 0;
 		for ( int i = 0; i < numVolumes; ++i )
 		{
+			final VolumeShaderSignature.VolumeSignature volumeSignature = signature.getVolumeSignatures().get( i );
+			if(volumeSignature.getSourceStackType()  == SourceStacks.SourceStackType.MULTIRESOLUTION)
+			{
+				nMultiresVolumesNum++;
+			}
+		}
+		final Segment[] sampleVolumeSegs = new Segment[ numVolumes];
+		final Segment[] convertSegs = new Segment[ numVolumes - nMultiresVolumesNum];
+		final Segment[] accumulateSegs = new Segment[ numVolumes - nMultiresVolumesNum];
+		
+		int nRegularVolume = 0;
+		
+		for ( int i = 0; i < numVolumes; ++i )
+		{
+			boolean isSimpleVolume = false;
 			final HashMap< SegmentType, Segment > instancedSegments = new HashMap<>();
 			final VolumeShaderSignature.VolumeSignature volumeSignature = signature.getVolumeSignatures().get( i );
 			instancedSegments.put(SegmentType.FragmentShader, fp);
@@ -196,9 +208,10 @@ public class MultiVolumeShaderMip
 					break;
 				default:
 				}
-				instancedSegments.put( SegmentType.SampleMultiresolutionVolume, sampleVolume );
+				//instancedSegments.put( SegmentType.SampleMultiresolutionVolume, sampleVolume );
 				break;
 			case SIMPLE:
+				isSimpleVolume = true;
 				accumulate = templateAccumulateMipSimple.instantiate();
 				instancedSegments.put( SegmentType.Accumulator, accumulate );
 				sampleVolume = volumeSignature.getPixelType() == VolumeShaderSignature.PixelType.ARGB
@@ -234,8 +247,12 @@ public class MultiVolumeShaderMip
 			accumulate.bind( "convert", convert );
 
 			sampleVolumeSegs[ i ] = sampleVolume;
-			convertSegs[ i ] = convert;
-			accumulateSegs[ i ] = accumulate;
+			if(isSimpleVolume)
+			{
+				convertSegs[ nRegularVolume ] = convert;
+				accumulateSegs[ nRegularVolume ] = accumulate;
+				nRegularVolume++;
+			}
 		}
 		fp.insert( "SampleVolume", sampleVolumeSegs );
 		fp.insert( "Convert", convertSegs );
@@ -281,13 +298,16 @@ public class MultiVolumeShaderMip
 
 		volumeSegments = new VolumeSegment[ numVolumes ];
 		converterSegments = new ConverterSegment[ numVolumes ];
+		int nSimpleVolume = 0;
 		for ( int i = 0; i < numVolumes; ++i )
 		{
+			boolean isSimpleVolume = false;
 			final VolumeShaderSignature.VolumeSignature volumeSignature = signature.getVolumeSignatures().get( i );
 			switch ( volumeSignature.getSourceStackType() )
 			{
 			case SIMPLE:
 				volumeSegments[ i ] = new VolumeSimpleSegment( prog, sampleVolumeSegs[ i ] );
+				isSimpleVolume = true;
 				break;
 			case MULTIRESOLUTION:
 				volumeSegments[ i ] = new VolumeBlocksSegment( prog, sampleVolumeSegs[ i ]);
@@ -295,7 +315,11 @@ public class MultiVolumeShaderMip
 			default:
 				break;
 			}
-			converterSegments[ i ] = new ConverterSegment( prog, convertSegs[ i ], volumeSignature.getPixelType() );
+			if(isSimpleVolume)
+			{
+				converterSegments[ nSimpleVolume ] = new ConverterSegment( prog, convertSegs[ i ], volumeSignature.getPixelType() );
+				nSimpleVolume++;
+			}
 		}
 
 		uniformTransform = prog.getUniformMatrix4f( "transform" );
@@ -307,13 +331,14 @@ public class MultiVolumeShaderMip
 //		final StringBuilder vertexShaderCode = prog.getVertexShaderCode();
 //		System.out.println( "vertexShaderCode = " + vertexShaderCode );
 //		System.out.println( "\n\n--------------------------------\n\n" );
-//		final StringBuilder fragmentShaderCode = prog.getFragmentShaderCode();
-//		System.out.println( "fragmentShaderCode = " + fragmentShaderCode );
-//		System.out.println( "\n\n--------------------------------\n\n" );
 		
-		String fsCode = prog.getFragmentShaderCode().toString();
-		System.out.println("Fragment Shader Characters: " + fsCode.length());
-		System.out.println("Fragment Shader Lines: " + fsCode.split("\r\n|\r|\n").length);
+		final StringBuilder fragmentShaderCode = prog.getFragmentShaderCode();
+		System.out.println( "fragmentShaderCode = " + fragmentShaderCode );
+		System.out.println( "\n\n--------------------------------\n\n" );
+		
+//		String fsCode = prog.getFragmentShaderCode().toString();
+//		System.out.println("Fragment Shader Characters: " + fsCode.length());
+//		System.out.println("Fragment Shader Lines: " + fsCode.split("\r\n|\r|\n").length);
 	}
 
 	public static Map< SegmentType, SegmentTemplate > getDefaultSegments( boolean useDepthTexture )
