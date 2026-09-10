@@ -5,8 +5,10 @@ uniform mat4 ipv;
 uniform float fwnw;
 uniform float nw;
 
-uniform sampler3D u_CacheR8;
-uniform sampler3D u_CacheR16;
+//$insert{cachesNumber}
+
+uniform sampler3D u_Caches[CACHES_NUMBER];
+
 uniform vec3 cacheBlockSize;
 uniform vec3 paddedBlockSize;
 uniform vec3 cachePadOffset;
