@@ -7,6 +7,11 @@ uniform float nw;
 
 uniform sampler3D u_CacheR8;
 uniform sampler3D u_CacheR16;
+uniform vec3 cacheBlockSize;
+uniform vec3 paddedBlockSize;
+uniform vec3 cachePadOffset;
+uniform vec3 cacheSize;
+
 uniform usampler3D u_GlobalLut;
 uniform vec3 globalLutSize;
 

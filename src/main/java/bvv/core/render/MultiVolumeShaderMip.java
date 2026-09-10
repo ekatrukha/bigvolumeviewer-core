@@ -73,9 +73,16 @@ public class MultiVolumeShaderMip
 	private final VolumeSegment[] volumeSegments;
 	private final ConverterSegment[] converterSegments;
 	
-	// Global caches and level-lut table for mutlires
+	// Global caches
     private final UniformSampler uniformCacheR8;
     private final UniformSampler uniformCacheR16;
+    //it should be the same for all caches
+    private final Uniform3f uniformCacheBlockSize;
+    private final Uniform3f uniformPaddedBlockSize;
+    private final Uniform3f uniformCachePadOffset;
+    private final Uniform3f uniformCacheSize;
+    
+    //Global level-lut table for mutlires
 	private final UniformSampler uniformGlobalLut;
 	private final Uniform3f uniformGlobalLutSize;
 
@@ -241,12 +248,26 @@ public class MultiVolumeShaderMip
 		uniformFwnw = prog.getUniform1f( "fwnw" );
 		uniformXf = prog.getUniform1f( "xf" );
 
-        uniformCacheR8 = prog.getUniformSampler("u_CacheR8");
-        uniformCacheR16 = prog.getUniformSampler("u_CacheR16");
+        uniformCacheR8 = prog.getUniformSampler( "u_CacheR8" );
+        uniformCacheR16 = prog.getUniformSampler( "u_CacheR16" );
+        uniformCacheBlockSize = prog.getUniform3f( "cacheBlockSize" );
+        uniformPaddedBlockSize = prog.getUniform3f( "paddedBlockSize" );
+        uniformCachePadOffset = prog.getUniform3f( "cachePadOffset" );
+        uniformCacheSize = prog.getUniform3f( "cacheSize" );
+
         uniformCacheR8.set( cache8 );
         uniformCacheR16.set( cache16 );
+        //the same for all caches
+		final CacheSpec spec = cache8.spec();
+		final int[] bs = spec.blockSize();
+		final int[] pbs = spec.paddedBlockSize();
+		final int[] bo = spec.padOffset();
+        uniformCacheBlockSize.set( bs[ 0 ], bs[ 1 ], bs[ 2 ] );
+		uniformPaddedBlockSize.set( pbs[ 0 ], pbs[ 1 ], pbs[ 2 ] );
+		uniformCachePadOffset.set( bo[ 0 ], bo[ 1 ], bo[ 2 ] );
+		uniformCacheSize.set( cache8.texWidth(), cache8.texHeight(), cache8.texDepth() );
         
-		uniformGlobalLut = prog.getUniformSampler("u_GlobalLut");        
+		uniformGlobalLut = prog.getUniformSampler( "u_GlobalLut" );        
         uniformGlobalLutSize = prog.getUniform3f( "globalLutSize" );  
 
 		volumeSegments = new VolumeSegment[ numVolumes ];
@@ -288,7 +309,6 @@ public class MultiVolumeShaderMip
 
 		segments.put( SegmentType.SampleMultiresolutionVolume, new SegmentTemplate(
 				"sample_volume_blocks.frag",
-				 "blockSize", "paddedBlockSize", "cachePadOffset", "cacheSize",
 				"im", "sourcemin", "sourcemax", "intersectBoundingBox",
 				"blockScales", "lutOffset", 
 				"cacheType", "globalZlutOffset", "sampleVolume") );
@@ -415,11 +435,11 @@ public class MultiVolumeShaderMip
 
 	// TODO remove
 	// TODO is this still needed?
-	@Deprecated
-	public void removeCustomUniformForVolume( int index, String name )
-	{
-		throw new UnsupportedOperationException();
-	}
+//	@Deprecated
+//	public void removeCustomUniformForVolume( int index, String name )
+//	{
+//		throw new UnsupportedOperationException();
+//	}
 
 	// TODO remove
 	/**
@@ -612,31 +632,19 @@ public class MultiVolumeShaderMip
 
 	static class VolumeBlocksSegment extends VolumeSegment
 	{
-		private final Uniform3f uniformBlockSize;
-		private final Uniform3f uniformPaddedBlockSize;
-		private final Uniform3f uniformCachePadOffset;
-		private final Uniform3f uniformCacheSize;
+
 		private final Uniform3fv uniformBlockScales;
-		//private final UniformSampler uniformLutSampler;
-		//private final Uniform3f uniformLutSize;
 		private final Uniform3f uniformLutOffset;
 		private final UniformMatrix4f uniformIm;
 		private final Uniform3f uniformSourcemin;
 		private final Uniform3f uniformSourcemax;
 		private final Uniform1f uniformGlobalLutZOffset;
 
-
 		public VolumeBlocksSegment( final SegmentedShader prog, final Segment volume)
 		{
 			super( volume );
 
-			uniformBlockSize = prog.getUniform3f(volume, "blockSize" );
-			uniformPaddedBlockSize = prog.getUniform3f(volume, "paddedBlockSize" );
-			uniformCachePadOffset = prog.getUniform3f(volume, "cachePadOffset" );
-			uniformCacheSize = prog.getUniform3f(volume, "cacheSize" );
 			uniformBlockScales = prog.getUniform3fv( volume, "blockScales" );
-			//uniformLutSampler = prog.getUniformSampler( volume, "lutSampler" );
-			//uniformLutSize = prog.getUniform3f( volume, "lutSize" );
 			uniformLutOffset = prog.getUniform3f( volume, "lutOffset" );
 			uniformIm = prog.getUniformMatrix4f( volume, "im" );
 			uniformSourcemin = prog.getUniform3f( volume, "sourcemin" );
@@ -646,23 +654,9 @@ public class MultiVolumeShaderMip
 
 		public void setData( VolumeBlocks blocks, final int zLutOffset)
 		{
-			
-			final TextureCache cache = blocks.getTextureCache();
-			final CacheSpec spec = cache.spec();
-			final int[] bs = spec.blockSize();
-			final int[] pbs = spec.paddedBlockSize();
-			final int[] bo = spec.padOffset();
-			
-			uniformBlockSize.set( bs[ 0 ], bs[ 1 ], bs[ 2 ] );
-			uniformPaddedBlockSize.set( pbs[ 0 ], pbs[ 1 ], pbs[ 2 ] );
-			uniformCachePadOffset.set( bo[ 0 ], bo[ 1 ], bo[ 2 ] );
-			uniformCacheSize.set( cache.texWidth(), cache.texHeight(), cache.texDepth() );
 
 			uniformBlockScales.set( blocks.getLutBlockScales( NUM_BLOCK_SCALES ) );
 			final LookupTextureARGB lut = blocks.getLookupTexture();
-			//uniformLutSize.set( lut.getSize3f() );
-			//uniformLutSampler.set( lut );
-			//uniformLutSize.set( globalLutTexture.getSize3f() );
 			uniformLutOffset.set( lut.getOffset3f() );
 			uniformIm.set( blocks.getIms() );
 			uniformSourcemin.set( blocks.getSourceLevelMin() );

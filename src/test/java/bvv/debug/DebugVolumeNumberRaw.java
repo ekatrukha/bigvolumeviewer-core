@@ -3,7 +3,6 @@ package bvv.debug;
 import java.util.List;
 
 import net.imglib2.Cursor;
-import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.cache.img.ReadOnlyCachedCellImgFactory;
 import net.imglib2.cache.img.ReadOnlyCachedCellImgOptions;
 import net.imglib2.img.Img;
@@ -14,11 +13,10 @@ import net.imglib2.type.numeric.RealType;
 import net.imglib2.type.numeric.integer.UnsignedByteType;
 
 import bdv.cache.SharedQueue;
-import bdv.util.RandomAccessibleIntervalSource;
 import bdv.util.volatiles.VolatileViews;
 import bdv.viewer.ConverterSetups;
 import bdv.viewer.SourceAndConverter;
-import bvv.core.VolumeViewerPanel;
+
 import bvv.vistools.Bvv;
 import bvv.vistools.BvvFunctions;
 import bvv.vistools.BvvOptions;
