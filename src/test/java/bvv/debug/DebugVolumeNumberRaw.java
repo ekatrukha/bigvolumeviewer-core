@@ -26,7 +26,7 @@ public class DebugVolumeNumberRaw
 {
 	public static void main( final String[] args )
 	{
-		int nMaxVolumesToTry = 50;
+		int nMaxVolumesToTry = 250;
 		int nVolumeEdge = 10;
 
         double spreadCoeff = 2.5;

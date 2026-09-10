@@ -22,16 +22,31 @@ uniform vec3 globalLutSize;
 
 struct VolumeData {
     mat4 im;
-    vec3 lutOffset;
-    float globalZlutOffset;
     bool visible;
+    float globalZlutOffset;
+    vec3 lutOffset;
     int blockScaleOffset;
+    int cacheInd;
     vec4 offset;
     vec4 scale;
 };
 
 uniform VolumeData u_volumes[ MULTIRES_NUMBER ];
 uniform vec3 u_blockScales[ NUM_BLOCK_SCALES * MULTIRES_NUMBER ];
+
+float sampleMultiresVolume( vec4 wpos, int i )
+{
+	vec3 pos = (u_volumes[i].im * wpos).xyz + 0.5;
+	vec3 q = floor( pos / cacheBlockSize ) - u_volumes[i].lutOffset + 0.5;
+	q.z = q.z + u_volumes[i].globalZlutOffset;
+
+	uvec4 lutv = texture( u_GlobalLut, q / globalLutSize );
+	vec3 B0 = lutv.xyz * paddedBlockSize + cachePadOffset;
+	vec3 sj =  u_blockScales[u_volumes[i].blockScaleOffset + lutv.w]; 
+
+	vec3 c0 = (B0 + mod( pos * sj, cacheBlockSize ) + 0.5 * sj) / cacheSize;
+	return texture( u_Caches[u_volumes[i].cacheInd], c0 ).r;
+}
 
 // intersect ray with a box
 // http://www.siggraph.org/education/materials/HyperGraph/raytrace/rtinter3.htm
