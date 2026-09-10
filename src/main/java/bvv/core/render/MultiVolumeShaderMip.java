@@ -307,9 +307,13 @@ public class MultiVolumeShaderMip
 //		final StringBuilder vertexShaderCode = prog.getVertexShaderCode();
 //		System.out.println( "vertexShaderCode = " + vertexShaderCode );
 //		System.out.println( "\n\n--------------------------------\n\n" );
-		final StringBuilder fragmentShaderCode = prog.getFragmentShaderCode();
-		System.out.println( "fragmentShaderCode = " + fragmentShaderCode );
-		System.out.println( "\n\n--------------------------------\n\n" );
+//		final StringBuilder fragmentShaderCode = prog.getFragmentShaderCode();
+//		System.out.println( "fragmentShaderCode = " + fragmentShaderCode );
+//		System.out.println( "\n\n--------------------------------\n\n" );
+		
+		String fsCode = prog.getFragmentShaderCode().toString();
+		System.out.println("Fragment Shader Characters: " + fsCode.length());
+		System.out.println("Fragment Shader Lines: " + fsCode.split("\r\n|\r|\n").length);
 	}
 
 	public static Map< SegmentType, SegmentTemplate > getDefaultSegments( boolean useDepthTexture )

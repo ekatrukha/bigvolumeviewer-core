@@ -5,8 +5,10 @@ uniform mat4 ipv;
 uniform float fwnw;
 uniform float nw;
 
+
 //$insert{cachesNumber}
 //$insert{multiresVNumber}
+#define NUM_BLOCK_SCALES 10
 
 uniform sampler3D u_Caches[CACHES_NUMBER];
 
@@ -18,7 +20,18 @@ uniform vec3 cacheSize;
 uniform usampler3D u_GlobalLut;
 uniform vec3 globalLutSize;
 
-#define NUM_BLOCK_SCALES 10
+struct VolumeData {
+    mat4 im;
+    vec3 lutOffset;
+    float globalZlutOffset;
+    bool visible;
+    int blockScaleOffset;
+    vec4 offset;
+    vec4 scale;
+};
+
+uniform VolumeData u_volumes[ MULTIRES_NUMBER ];
+uniform vec3 u_blockScales[ NUM_BLOCK_SCALES * MULTIRES_NUMBER ];
 
 // intersect ray with a box
 // http://www.siggraph.org/education/materials/HyperGraph/raytrace/rtinter3.htm
