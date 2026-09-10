@@ -6,6 +6,7 @@ uniform float fwnw;
 uniform float nw;
 
 //$insert{cachesNumber}
+//$insert{multiresVNumber}
 
 uniform sampler3D u_Caches[CACHES_NUMBER];
 

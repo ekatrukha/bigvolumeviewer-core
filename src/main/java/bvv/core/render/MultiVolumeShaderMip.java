@@ -167,6 +167,8 @@ public class MultiVolumeShaderMip
 		final Segment[] sampleVolumeSegs = new Segment[ numVolumes ];
 		final Segment[] convertSegs = new Segment[ numVolumes ];
 		final Segment[] accumulateSegs = new Segment[ numVolumes ];
+		
+		int nMultiresVolumesNum = 0;
 		for ( int i = 0; i < numVolumes; ++i )
 		{
 			final HashMap< SegmentType, Segment > instancedSegments = new HashMap<>();
@@ -181,6 +183,7 @@ public class MultiVolumeShaderMip
 				accumulate = templateAccumulateMipBlocks.instantiate();
 				instancedSegments.put( SegmentType.AccumulatorMultiresolution, accumulate );
 				sampleVolume = templateVolBlocks.instantiate();
+				nMultiresVolumesNum++;
 				switch ( volumeSignature.getPixelType() )
 				{
 				case UBYTE:
@@ -239,6 +242,8 @@ public class MultiVolumeShaderMip
 		fp.insert( "Accumulate", accumulateSegs );
 		final int numCaches = caches.size();
 		fp.insert( "cachesNumber", SegmentTemplate.fromCode("#define CACHES_NUMBER " + Integer.toString( numCaches )).instantiate() );
+		fp.insert( "multiresVNumber", SegmentTemplate.fromCode("#define MULTIRES_NUMBER " + Integer.toString( nMultiresVolumesNum )).instantiate() );
+		
 		builder.fragment( fp );
 		prog = builder.build();
 
@@ -334,7 +339,7 @@ public class MultiVolumeShaderMip
 				useDepthTexture ? "maxdepthtexture.frag" : "maxdepthone.frag" ) );
 		segments.put( SegmentType.VertexShader, new SegmentTemplate( "multi_volume.vert" ) );
 		segments.put( SegmentType.FragmentShader, new SegmentTemplate(
-				"multi_volume.frag", "cachesNumber",
+				"multi_volume.frag", "cachesNumber", "multiresVNumber",
 				"intersectBoundingBox", "vis", "SampleVolume", "Convert", "Accumulate" ) );
 		segments.put( SegmentType.AccumulatorMultiresolution, new SegmentTemplate(
 				"accumulate_mip_blocks.frag",
