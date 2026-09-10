@@ -8,7 +8,7 @@ uniform float nw;
 uniform sampler3D u_CacheR8;
 uniform sampler3D u_CacheR16;
 uniform usampler3D u_GlobalLut;
-
+uniform vec3 globalLutSize;
 
 #define NUM_BLOCK_SCALES 10
 

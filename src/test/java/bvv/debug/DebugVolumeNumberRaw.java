@@ -28,9 +28,11 @@ public class DebugVolumeNumberRaw
 {
 	public static void main( final String[] args )
 	{
-		int nMaxVolumesToTry = 200;
-		int nVolumeEdge = 3;
+		int nMaxVolumesToTry = 20;
+		int nVolumeEdge = 10;
 
+        double spreadCoeff = 2.5;
+        
 		int numThreads = 8;
 		int numQueueLevels = 10;
 		SharedQueue queue = new SharedQueue( numThreads, numQueueLevels );
@@ -40,10 +42,10 @@ public class DebugVolumeNumberRaw
 		int[] bestGrid = findOptimalGridDimensions(nMaxVolumesToTry);
 		int nx = bestGrid[0];
         int ny = bestGrid[1];
-        double coeff = 1.5;
-        double spacingX = nVolumeEdge * coeff;
-        double spacingY = nVolumeEdge * coeff;
-        double spacingZ = nVolumeEdge * coeff;
+
+        double spacingX = nVolumeEdge * spreadCoeff;
+        double spacingY = nVolumeEdge * spreadCoeff;
+        double spacingZ = nVolumeEdge * spreadCoeff;
 
 		for (int i = 0; i < nMaxVolumesToTry; i++) {
             int gridX = i % nx;
@@ -66,17 +68,17 @@ public class DebugVolumeNumberRaw
 
 		}
 		//assign random color
-//		final List< SourceAndConverter< ? > > sacList = bvv.getBvvHandle().getViewerPanel().state().getSources();
-//		final ConverterSetups convS = bvv.getBvvHandle().getConverterSetups();
-//		int sN = 0;
-//		for(final SourceAndConverter< ? > sac : sacList)
-//		{
-//
-//			float hue = (float) sN / nMaxVolumesToTry;
-//		    int rgb = java.awt.Color.HSBtoRGB(hue, 0.8f, 1.0f);
-//			convS.getConverterSetup( sac ).setColor( new ARGBType(rgb) );
-//		    sN++;
-//		}
+		final List< SourceAndConverter< ? > > sacList = bvv.getBvvHandle().getViewerPanel().state().getSources();
+		final ConverterSetups convS = bvv.getBvvHandle().getConverterSetups();
+		int sN = 0;
+		for(final SourceAndConverter< ? > sac : sacList)
+		{
+
+			float hue = (float) sN / nMaxVolumesToTry;
+		    int rgb = java.awt.Color.HSBtoRGB(hue, 0.8f, 1.0f);
+			convS.getConverterSetup( sac ).setColor( new ARGBType(rgb) );
+		    sN++;
+		}
 	}
 	
 	public static int[] findOptimalGridDimensions(int n) {
@@ -123,8 +125,8 @@ public class DebugVolumeNumberRaw
 			{
 				cursor.fwd();
 				cursor.localize( pos );
-				//double val = gyroid(pos, period, minAmp, maxAmp);
-				double val  = maxAmp;
+				double val = gyroid(pos, period, minAmp, maxAmp);
+				//double val  = maxAmp;
 				cursor.get().setReal( val ); 
 			}
 			//Thread.sleep( 80 );

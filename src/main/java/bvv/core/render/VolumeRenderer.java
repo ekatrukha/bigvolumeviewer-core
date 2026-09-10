@@ -249,7 +249,7 @@ public class VolumeRenderer
 
 	private MultiVolumeShaderMip createMultiVolumeShader( final VolumeShaderSignature signature )
 	{
-		return new MultiVolumeShaderMip( signature, true, 1.0, cacheR8.textureCache(), cacheR16.textureCache(), globalLutTexture);
+		return new MultiVolumeShaderMip( signature, true, 1.0, cacheR8.textureCache(), cacheR16.textureCache());
 	}
 
 	public void init( final GL3 gl )
@@ -341,9 +341,9 @@ public class VolumeRenderer
 					if ( volumeSignatures.get( i ).getSourceStackType() == MULTIRESOLUTION )
 					{
 						final VolumeBlocks volume = volumes.get( mri++ );
-						final int zOffset = globalLutTexture.zOffsetsPerVolume.get( nMultiResV );
+						final int zLutOffset = globalLutTexture.zOffsetsPerVolume.get( nMultiResV );
 						nMultiResV ++;
-						progvol.setVolume( i, volume, globalLutTexture, zOffset );
+						progvol.setVolume( i, volume, zLutOffset );
 						minWorldVoxelSize = Math.min( minWorldVoxelSize, volume.getBaseLevelVoxelSizeInWorldCoordinates() );
 					}
 					else

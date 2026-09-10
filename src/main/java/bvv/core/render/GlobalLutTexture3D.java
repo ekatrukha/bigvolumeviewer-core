@@ -36,7 +36,6 @@ public class GlobalLutTexture3D implements Texture3D
 		maxsize[2] = 0;
 	}
 
-
 	public void addVolumeLUT(final int[] sizeLut, final ByteBuffer data)
 	{
 		final int zOffset = this.maxsize[2];
@@ -54,34 +53,11 @@ public class GlobalLutTexture3D implements Texture3D
 		for(int i = 0; i < uploadData.size(); i++)
 		{
 			final int [] lutSize = lutsSizes.get( i );
-		context.texSubImage3D(
-				this,
-				0,         
-				0,         
-				zOffsetsPerVolume.get( i ),   
-				lutSize[ 0 ],
-				lutSize[ 1 ],
-				lutSize[ 2 ],
-				uploadData.get( i )
+			context.texSubImage3D(this,	0, 0, zOffsetsPerVolume.get( i ), lutSize[ 0 ], lutSize[ 1 ], lutSize[ 2 ], uploadData.get( i )
 			);
 		}
 	}
-//	public void uploadVolumeLut( final GpuContext context, final int volumeSlot, final LookupTextureARGB lut )
-//	{
-//		final int zOffset = volumeSlot * lutDepth;
-//		final int[] size = lut.getSize();
-//
-//		context.texSubImage3D(
-//			this,
-//			0,          // x offset
-//			0,          // y offset
-//			zOffset,    // z offset (slot index * lutDepth)
-//			size[ 0 ],
-//			size[ 1 ],
-//			size[ 2 ],
-//			lut.getData()
-//		);
-//	}
+
 	public Vector3f getSize3f()
 	{
 		return new Vector3f( maxsize[ 0 ], maxsize[ 1 ], maxsize[ 2 ] );
