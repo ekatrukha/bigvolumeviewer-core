@@ -7,6 +7,10 @@ uniform float nw;
 
 uniform sampler3D u_CacheR8;
 uniform sampler3D u_CacheR16;
+uniform usampler3D u_GlobalLut;
+
+
+#define NUM_BLOCK_SCALES 10
 
 // intersect ray with a box
 // http://www.siggraph.org/education/materials/HyperGraph/raytrace/rtinter3.htm

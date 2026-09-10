@@ -3,6 +3,7 @@ package bvv.debug;
 import java.util.List;
 
 import net.imglib2.Cursor;
+import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.cache.img.ReadOnlyCachedCellImgFactory;
 import net.imglib2.cache.img.ReadOnlyCachedCellImgOptions;
 import net.imglib2.img.Img;
@@ -12,8 +13,12 @@ import net.imglib2.type.numeric.ARGBType;
 import net.imglib2.type.numeric.RealType;
 import net.imglib2.type.numeric.integer.UnsignedByteType;
 
+import bdv.cache.SharedQueue;
+import bdv.util.RandomAccessibleIntervalSource;
+import bdv.util.volatiles.VolatileViews;
 import bdv.viewer.ConverterSetups;
 import bdv.viewer.SourceAndConverter;
+import bvv.core.VolumeViewerPanel;
 import bvv.vistools.Bvv;
 import bvv.vistools.BvvFunctions;
 import bvv.vistools.BvvOptions;
@@ -23,10 +28,15 @@ public class DebugVolumeNumberRaw
 {
 	public static void main( final String[] args )
 	{
-		int nVolumeEdge = 10;
+		int nMaxVolumesToTry = 200;
+		int nVolumeEdge = 3;
 
+		int numThreads = 8;
+		int numQueueLevels = 10;
+		SharedQueue queue = new SharedQueue( numThreads, numQueueLevels );
+		
 		final Bvv bvv = BvvFunctions.show(BvvOptions.options().frameTitle( "Test max number of volumes" ));
-		int nMaxVolumesToTry = 30;
+
 		int[] bestGrid = findOptimalGridDimensions(nMaxVolumesToTry);
 		int nx = bestGrid[0];
         int ny = bestGrid[1];
@@ -34,6 +44,7 @@ public class DebugVolumeNumberRaw
         double spacingX = nVolumeEdge * coeff;
         double spacingY = nVolumeEdge * coeff;
         double spacingZ = nVolumeEdge * coeff;
+
 		for (int i = 0; i < nMaxVolumesToTry; i++) {
             int gridX = i % nx;
             int gridY = (i / nx) % ny;
@@ -46,20 +57,26 @@ public class DebugVolumeNumberRaw
             t.translate( px, py, pz );
             String sTitle = Integer.toString( gridX ) + " " + Integer.toString( gridY ) + " " + Integer.toString( gridZ );
             final Img< ? > rai = makeCachedCellImg(new UnsignedByteType(), nVolumeEdge, 128, 255 );
-            BvvFunctions.show( rai, sTitle, Bvv.options().addTo( bvv ).sourceTransform( t ));       
-        }
-		//assign random color
-		final List< SourceAndConverter< ? > > sacList = bvv.getBvvHandle().getViewerPanel().state().getSources();
-		final ConverterSetups convS = bvv.getBvvHandle().getConverterSetups();
-		int sN = 0;
-		for(final SourceAndConverter< ? > sac : sacList)
-		{
+                BvvFunctions.show( VolatileViews.wrapAsVolatile(rai, queue), sTitle, 
+            		Bvv.options().addTo( bvv ).sourceTransform( t ));       
+//            BvvFunctions.show( VolatileViews.wrapAsVolatile(rai), sTitle, 
+//            		Bvv.options().addTo( bvv ).sourceTransform( t ));       
 
-			float hue = (float) sN / nMaxVolumesToTry;
-		    int rgb = java.awt.Color.HSBtoRGB(hue, 0.8f, 1.0f);
-			convS.getConverterSetup( sac ).setColor( new ARGBType(rgb) );
-		    sN++;
+            //BvvFunctions.show( rai, sTitle, Bvv.options().addTo( bvv ).sourceTransform( t ));       
+
 		}
+		//assign random color
+//		final List< SourceAndConverter< ? > > sacList = bvv.getBvvHandle().getViewerPanel().state().getSources();
+//		final ConverterSetups convS = bvv.getBvvHandle().getConverterSetups();
+//		int sN = 0;
+//		for(final SourceAndConverter< ? > sac : sacList)
+//		{
+//
+//			float hue = (float) sN / nMaxVolumesToTry;
+//		    int rgb = java.awt.Color.HSBtoRGB(hue, 0.8f, 1.0f);
+//			convS.getConverterSetup( sac ).setColor( new ARGBType(rgb) );
+//		    sN++;
+//		}
 	}
 	
 	public static int[] findOptimalGridDimensions(int n) {
@@ -97,8 +114,8 @@ public class DebugVolumeNumberRaw
 	{
 		final long[] dims = new long[] {nEdge, nEdge, nEdge};
 		final ReadOnlyCachedCellImgFactory factory = new ReadOnlyCachedCellImgFactory(
-				ReadOnlyCachedCellImgOptions.options().cellDimensions( 32, 32, 32 ) );
-		double period = nEdge*0.5 + Math.random() *  nEdge*0.5;
+				ReadOnlyCachedCellImgOptions.options().cellDimensions( 32 ) );
+		double period = nEdge * 0.5 + Math.random() *  nEdge * 0.5;
 		final Img< T > cellimg = factory.create( dims, type, cell -> {
 			Cursor< T > cursor = cell.localizingCursor();
 			final double [] pos = new double[3];
@@ -106,7 +123,8 @@ public class DebugVolumeNumberRaw
 			{
 				cursor.fwd();
 				cursor.localize( pos );
-				double val = gyroid(pos, period, minAmp, maxAmp);
+				//double val = gyroid(pos, period, minAmp, maxAmp);
+				double val  = maxAmp;
 				cursor.get().setReal( val ); 
 			}
 			//Thread.sleep( 80 );
@@ -118,7 +136,6 @@ public class DebugVolumeNumberRaw
 	static double gyroid(final double [] pos, final double period, final double minAmp, final double maxAmp) 
 	{
 		double w = 2.0 * Math.PI / period;
-
 		
 		double g =   Math.sin(pos[0] * w ) * Math.cos(pos[1] * w) 
 				   + Math.sin(pos[1] * w ) * Math.cos(pos[2] * w ) 

@@ -1,5 +1,3 @@
-#define NUM_BLOCK_SCALES 10
-
 uniform mat4 im;
 uniform vec3 sourcemin;
 uniform vec3 sourcemax;
@@ -19,17 +17,19 @@ uniform vec3 cachePadOffset;
 // -- comes from TextureCache --
 uniform vec3 cacheSize;// TODO: get from texture!?
 
-uniform usampler3D lutSampler;
+
 uniform vec3 blockScales[ NUM_BLOCK_SCALES ];
 uniform vec3 lutSize;
 uniform vec3 lutOffset;
+uniform float globalZlutOffset;
 
 float sampleVolume( vec4 wpos )
 {
 	vec3 pos = (im * wpos).xyz + 0.5;
 	vec3 q = floor( pos / blockSize ) - lutOffset + 0.5;
-
-	uvec4 lutv = texture( lutSampler, q / lutSize );
+	q.z = q.z + globalZlutOffset;
+	//uvec4 lutv = texture( lutSampler, q / lutSize );
+	uvec4 lutv = texture( u_GlobalLut, q / lutSize );
 	vec3 B0 = lutv.xyz * paddedBlockSize + cachePadOffset;
 	vec3 sj = blockScales[ lutv.w ];
 

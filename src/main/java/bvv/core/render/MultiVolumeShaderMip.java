@@ -75,7 +75,7 @@ public class MultiVolumeShaderMip
 	private final ConverterSegment[] converterSegments;
 	
 	// Global Sampler Locations
-	//private final UniformSampler uniformGlobalLut;
+	private final UniformSampler uniformGlobalLut;
     private final UniformSampler uniformCacheR8;
     private final UniformSampler uniformCacheR16;
 
@@ -125,7 +125,8 @@ public class MultiVolumeShaderMip
 			final SegmentConsumer runBeforeBinding,
 			final String depthTextureName,
 			final TextureCache cache8,
-			final TextureCache cache16)
+			final TextureCache cache16,
+			final GlobalLutTexture3D globalLutTexture)
 	{
 		this.signature = signature;
 		this.useDepthTexture = useDepthTexture;
@@ -241,11 +242,12 @@ public class MultiVolumeShaderMip
 		uniformFwnw = prog.getUniform1f( "fwnw" );
 		uniformXf = prog.getUniform1f( "xf" );
 		
-		//uniformGlobalLut = prog.getUniformSampler("u_GlobalLut");
+		uniformGlobalLut = prog.getUniformSampler("u_GlobalLut");
         uniformCacheR8 = prog.getUniformSampler("u_CacheR8");
         uniformCacheR16 = prog.getUniformSampler("u_CacheR16");
         uniformCacheR8.set( cache8 );
         uniformCacheR16.set( cache16 );
+  
 
 		volumeSegments = new VolumeSegment[ numVolumes ];
 		converterSegments = new ConverterSegment[ numVolumes ];
@@ -258,7 +260,7 @@ public class MultiVolumeShaderMip
 				volumeSegments[ i ] = new VolumeSimpleSegment( prog, sampleVolumeSegs[ i ] );
 				break;
 			case MULTIRESOLUTION:
-				volumeSegments[ i ] = new VolumeBlocksSegment( prog, sampleVolumeSegs[ i ] );
+				volumeSegments[ i ] = new VolumeBlocksSegment( prog, sampleVolumeSegs[ i ]);
 				break;
 			}
 			converterSegments[ i ] = new ConverterSegment( prog, convertSegs[ i ], volumeSignature.getPixelType() );
@@ -286,7 +288,8 @@ public class MultiVolumeShaderMip
 				"sample_volume_blocks.frag",
 				 "blockSize", "paddedBlockSize", "cachePadOffset", "cacheSize",
 				"im", "sourcemin", "sourcemax", "intersectBoundingBox",
-				"lutSampler", "blockScales", "lutSize", "lutOffset", "sampleVolume", "cacheType" ) );
+				"blockScales", "lutSize", "lutOffset", 
+				"cacheType", "globalZlutOffset", "sampleVolume", "lutSampler") );
 		segments.put( SegmentType.SampleVolume, new SegmentTemplate(
 				"sample_volume_simple.frag",
 				"im", "sourcemax", "intersectBoundingBox",
@@ -319,9 +322,11 @@ public class MultiVolumeShaderMip
 
 	public MultiVolumeShaderMip( VolumeShaderSignature signature, final boolean useDepthTexture, final double degrade, 	
 			final TextureCache cache8,
-			final TextureCache cache16 )
+			final TextureCache cache16,
+			final GlobalLutTexture3D globalLutTexture)
 	{
-		this( signature, useDepthTexture, degrade, getDefaultSegments( useDepthTexture ), null, "sceneDepth", cache8, cache16);
+		this( signature, useDepthTexture, degrade, getDefaultSegments( useDepthTexture ), null, 
+				"sceneDepth", cache8, cache16, globalLutTexture);
 	}
 
 	public void setDepthTexture( Texture2D depth )
@@ -330,6 +335,11 @@ public class MultiVolumeShaderMip
 			throw new UnsupportedOperationException();
 
 		prog.getUniformSampler( sceneDepthTextureName ).set( depth );
+	}
+	
+	public void setGlobalLutTexture(final GlobalLutTexture3D globalLutTexture)
+	{
+		 uniformGlobalLut.set( globalLutTexture );
 	}
 
 	public void setDepthTextureName( String name )
@@ -429,13 +439,13 @@ public class MultiVolumeShaderMip
 		setUniform( index, name, elementSize, value );
 	}
 
-	public void setVolume( int index, VolumeBlocks volume )
+	public void setVolume( int index, VolumeBlocks volume, GlobalLutTexture3D globalLutTexture, final int zOffsetLUT)
 	{
 		final VolumeShaderSignature.VolumeSignature vs = signature.getVolumeSignatures().get( index );
 		if ( vs.getSourceStackType() != SourceStacks.SourceStackType.MULTIRESOLUTION )
 			throw new IllegalArgumentException();
 
-		( ( VolumeBlocksSegment ) volumeSegments[ index ] ).setData( volume );
+		( ( VolumeBlocksSegment ) volumeSegments[ index ] ).setData( volume, globalLutTexture, zOffsetLUT );
 	}
 
 	public void setVolume( int index, SimpleVolume volume )
@@ -611,6 +621,8 @@ public class MultiVolumeShaderMip
 		private final UniformMatrix4f uniformIm;
 		private final Uniform3f uniformSourcemin;
 		private final Uniform3f uniformSourcemax;
+		private final Uniform1f uniformGlobalLutZOffset;
+
 
 		public VolumeBlocksSegment( final SegmentedShader prog, final Segment volume)
 		{
@@ -620,19 +632,19 @@ public class MultiVolumeShaderMip
 			uniformPaddedBlockSize = prog.getUniform3f(volume, "paddedBlockSize" );
 			uniformCachePadOffset = prog.getUniform3f(volume, "cachePadOffset" );
 			uniformCacheSize = prog.getUniform3f(volume, "cacheSize" );
-
-			uniformBlockScales = prog.getUniform3fv( volume, "blockScales" );
 			uniformLutSampler = prog.getUniformSampler( volume, "lutSampler" );
+			uniformBlockScales = prog.getUniform3fv( volume, "blockScales" );
 			uniformLutSize = prog.getUniform3f( volume, "lutSize" );
 			uniformLutOffset = prog.getUniform3f( volume, "lutOffset" );
 			uniformIm = prog.getUniformMatrix4f( volume, "im" );
 			uniformSourcemin = prog.getUniform3f( volume, "sourcemin" );
 			uniformSourcemax = prog.getUniform3f( volume, "sourcemax" );
-
+			uniformGlobalLutZOffset = prog.getUniform1f( volume, "globalZlutOffset" );
 		}
 
-		public void setData( VolumeBlocks blocks )
+		public void setData( VolumeBlocks blocks, final GlobalLutTexture3D globalLutTexture, final int zLutGlobalOffset)
 		{
+			
 			final TextureCache cache = blocks.getTextureCache();
 			final CacheSpec spec = cache.spec();
 			final int[] bs = spec.blockSize();
@@ -646,13 +658,14 @@ public class MultiVolumeShaderMip
 
 			uniformBlockScales.set( blocks.getLutBlockScales( NUM_BLOCK_SCALES ) );
 			final LookupTextureARGB lut = blocks.getLookupTexture();
+			//uniformLutSize.set( lut.getSize3f() );
 			uniformLutSampler.set( lut );
-			uniformLutSize.set( lut.getSize3f() );
+			uniformLutSize.set( globalLutTexture.getSize3f() );
 			uniformLutOffset.set( lut.getOffset3f() );
 			uniformIm.set( blocks.getIms() );
 			uniformSourcemin.set( blocks.getSourceLevelMin() );
 			uniformSourcemax.set( blocks.getSourceLevelMax() );
-
+			uniformGlobalLutZOffset.set( zLutGlobalOffset );
 		}
 	}
 
