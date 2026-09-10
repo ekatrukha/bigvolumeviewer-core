@@ -340,7 +340,7 @@ public class VolumeRenderer
 				int nMultiResV = 0;
 				for ( int i = 0; i < renderStacks.size(); i++ )
 				{
-
+					progvol.setConverter( i, renderConverters.get( i ) );
 					if ( volumeSignatures.get( i ).getSourceStackType() == MULTIRESOLUTION )
 					{
 						final VolumeBlocks volume = volumes.get( mri++ );
@@ -350,8 +350,7 @@ public class VolumeRenderer
 						minWorldVoxelSize = Math.min( minWorldVoxelSize, volume.getBaseLevelVoxelSizeInWorldCoordinates() );
 					}
 					else
-					{
-						progvol.setConverter( i, renderConverters.get( i ) );
+					{						
 						final SimpleStack3D< ? > simpleStack3D = ( SimpleStack3D< ? > ) renderStacks.get( i );
 						final SimpleVolume volume = simpleStackManager.getSimpleVolume( context, simpleStack3D );
 						progvol.setVolume( i, volume );

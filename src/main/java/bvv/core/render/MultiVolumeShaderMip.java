@@ -174,9 +174,10 @@ public class MultiVolumeShaderMip
 				nMultiresVolumesNum++;
 			}
 		}
-		final Segment[] sampleVolumeSegs = new Segment[ numVolumes];
-		final Segment[] convertSegs = new Segment[ numVolumes - nMultiresVolumesNum];
-		final Segment[] accumulateSegs = new Segment[ numVolumes - nMultiresVolumesNum];
+
+		final Segment[] sampleVolumeSegs = new Segment[ numVolumes ];
+		final Segment[] convertSegs = new Segment[ numVolumes ];
+		final Segment[] accumulateSegs = new Segment[ numVolumes ];
 		
 		int nRegularVolume = 0;
 		
@@ -195,7 +196,6 @@ public class MultiVolumeShaderMip
 				accumulate = templateAccumulateMipBlocks.instantiate();
 				instancedSegments.put( SegmentType.AccumulatorMultiresolution, accumulate );
 				sampleVolume = templateVolBlocks.instantiate();
-				nMultiresVolumesNum++;
 				switch ( volumeSignature.getPixelType() )
 				{
 				case UBYTE:
@@ -208,7 +208,7 @@ public class MultiVolumeShaderMip
 					break;
 				default:
 				}
-				//instancedSegments.put( SegmentType.SampleMultiresolutionVolume, sampleVolume );
+				instancedSegments.put( SegmentType.SampleMultiresolutionVolume, sampleVolume );
 				break;
 			case SIMPLE:
 				isSimpleVolume = true;
@@ -247,12 +247,14 @@ public class MultiVolumeShaderMip
 			accumulate.bind( "convert", convert );
 
 			sampleVolumeSegs[ i ] = sampleVolume;
-			if(isSimpleVolume)
-			{
-				convertSegs[ nRegularVolume ] = convert;
-				accumulateSegs[ nRegularVolume ] = accumulate;
-				nRegularVolume++;
-			}
+			convertSegs[ i ] = convert;
+			accumulateSegs[ i ] = accumulate;
+//			if(isSimpleVolume)
+//			{
+//				convertSegs[ nRegularVolume ] = convert;
+//				accumulateSegs[ nRegularVolume ] = accumulate;
+//				nRegularVolume++;
+//			}
 		}
 		fp.insert( "SampleVolume", sampleVolumeSegs );
 		fp.insert( "Convert", convertSegs );
@@ -315,11 +317,12 @@ public class MultiVolumeShaderMip
 			default:
 				break;
 			}
-			if(isSimpleVolume)
-			{
-				converterSegments[ nSimpleVolume ] = new ConverterSegment( prog, convertSegs[ i ], volumeSignature.getPixelType() );
-				nSimpleVolume++;
-			}
+			converterSegments[ i ] = new ConverterSegment( prog, convertSegs[ i ], volumeSignature.getPixelType() );
+//			if(isSimpleVolume)
+//			{
+//				converterSegments[ nSimpleVolume ] = new ConverterSegment( prog, convertSegs[ i ], volumeSignature.getPixelType() );
+//				nSimpleVolume++;
+//			}
 		}
 
 		uniformTransform = prog.getUniformMatrix4f( "transform" );
