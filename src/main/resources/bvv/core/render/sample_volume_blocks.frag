@@ -8,7 +8,7 @@ void intersectBoundingBox( vec4 wfront, vec4 wback, out float tnear, out float t
 {
 	vec4 mfront = im * wfront;
 	vec4 mback = im * wback;
-	intersectBox( mfront.xyz, (mback - mfront).xyz, sourcemin, sourcemax, tnear, tfar );
+	intersectBox( mfront.xyz, (mback - mfront).xyz, sourcemin - 0.5, sourcemax + 0.5, tnear, tfar );
 }
 
 uniform sampler3D volumeCache;
@@ -29,15 +29,17 @@ uniform vec3 lutOffset;
 
 float sampleVolume( vec4 wpos )
 {
-	vec3 pos = (im * wpos).xyz + 0.5;
-	vec3 q = floor( pos / blockSize ) - lutOffset + 0.5;
+	vec3 pos = (im * wpos).xyz;
+	// Clamp tile lookup to minimum tile 0 so we don't hit the zero-LUT pad
+	vec3 qPos = max( vec3( 0.0 ), pos );
+	vec3 q = floor( qPos / blockSize ) - lutOffset + 0.5;
 
 	uvec4 lutv = texture( lutSampler, q / lutSize );
 	vec3 B0 = lutv.xyz * paddedBlockSize + cachePadOffset;
 	vec3 sj = blockScales[ lutv.w ];
 
-	vec3 c0 = B0 + mod( pos * sj, blockSize ) + 0.5 * sj;
-	                                       // + 0.5 ( sj - 1 )   + 0.5 for tex coord offset
+	// Compute continuous coordinate within the tile
+	vec3 c0 = B0 + pos * sj + 0.5 * sj;
 
 	return texture( volumeCache, c0 / cacheSize ).r;
 }
