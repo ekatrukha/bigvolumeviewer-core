@@ -178,11 +178,6 @@
 			<artifactId>imglib2-ij</artifactId>
 			<scope>test</scope>
 		</dependency>
-		<dependency>
-			<groupId>nl.uu.science.cellbiology</groupId>
-			<artifactId>AveragingND</artifactId>
-			<version>0.1.0</version>
-		</dependency>
 	</dependencies>
 
 	<repositories>
