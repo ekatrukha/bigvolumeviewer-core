@@ -15,7 +15,6 @@ uniform vec3 cachePadOffset;
 uniform vec3 cacheSize[CACHES_NUMBER];
 
 uniform usampler3D globalCacheLut;
-uniform vec3 globalCacheLutSize;
 
 // intersect ray with a box
 // http://www.siggraph.org/education/materials/HyperGraph/raytrace/rtinter3.htm

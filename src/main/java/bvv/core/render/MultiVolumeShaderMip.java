@@ -86,7 +86,6 @@ public class MultiVolumeShaderMip
 
     //Global cache lut-leve table for mutlires volumes
 	private final UniformSampler uniformGlobalCacheLut;
-	private final Uniform3f uniformGlobalCacheLutSize;
 	
 	private final UniformMatrix4f uniformIpv;
 	private final Uniform2f uniformViewportSize;
@@ -263,9 +262,7 @@ public class MultiVolumeShaderMip
 		uniformPaddedBlockSize.set( pbs[ 0 ], pbs[ 1 ], pbs[ 2 ] );
 		uniformCachePadOffset.set( bo[ 0 ], bo[ 1 ], bo[ 2 ] );
 		
-
 		uniformGlobalCacheLut = prog.getUniformSampler( "globalCacheLut" );        
-		uniformGlobalCacheLutSize = prog.getUniform3f("globalCacheLutSize");
 		
 		volumeSegments = new VolumeSegment[ numVolumes ];
 		converterSegments = new ConverterSegment[ numVolumes ];
