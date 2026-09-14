@@ -86,7 +86,8 @@ public class MultiVolumeShaderMip
 
     //Global cache lut-leve table for mutlires volumes
 	private final UniformSampler uniformGlobalCacheLut;
-
+	private final Uniform3f uniformGlobalCacheLutSize;
+	
 	private final UniformMatrix4f uniformIpv;
 	private final Uniform2f uniformViewportSize;
 
@@ -264,7 +265,8 @@ public class MultiVolumeShaderMip
 		
 
 		uniformGlobalCacheLut = prog.getUniformSampler( "globalCacheLut" );        
-        
+		uniformGlobalCacheLutSize = prog.getUniform3f("globalCacheLutSize");
+		
 		volumeSegments = new VolumeSegment[ numVolumes ];
 		converterSegments = new ConverterSegment[ numVolumes ];
 		for ( int i = 0; i < numVolumes; ++i )
@@ -304,7 +306,7 @@ public class MultiVolumeShaderMip
 		segments.put( SegmentType.SampleMultiresolutionVolume, new SegmentTemplate(
 				"sample_volume_blocks.frag",
 				"im", "sourcemin", "sourcemax", "intersectBoundingBox",
-				"blockScales", "lutOffset", 
+				"blockScales", "lutOffset", "lutSize",
 				"cacheType", "cacheLutZOffset", "sampleVolume" ) );
 		segments.put( SegmentType.SampleVolume, new SegmentTemplate(
 				"sample_volume_simple.frag",
@@ -628,6 +630,7 @@ public class MultiVolumeShaderMip
 		private final Uniform1i uniformCacheType;
 		private final Uniform3fv uniformBlockScales;
 		private final Uniform3f uniformLutOffset;
+		private final Uniform3f uniformLutSize;
 		private final Uniform1i uniformCacheLutZOffset;
 
 
@@ -638,6 +641,7 @@ public class MultiVolumeShaderMip
 			uniformCacheType = prog.getUniform1i( volume, "cacheType" );
 			uniformBlockScales = prog.getUniform3fv( volume, "blockScales" );
 			uniformLutOffset = prog.getUniform3f( volume, "lutOffset" );
+			uniformLutSize = prog.getUniform3f( volume, "lutSize" );
 			uniformCacheLutZOffset = prog.getUniform1i( volume, "cacheLutZOffset" );
 
 			uniformIm = prog.getUniformMatrix4f( volume, "im" );
@@ -666,6 +670,7 @@ public class MultiVolumeShaderMip
 			uniformBlockScales.set( blocks.getLutBlockScales( NUM_BLOCK_SCALES ) );
 			final LookupTextureARGB lut = blocks.getLookupTexture();
 			uniformLutOffset.set( lut.getOffset3f() );
+			uniformLutSize.set( lut.getSize3f() );
 			uniformCacheLutZOffset.set( cacheLutZOffset );
 
 		}
