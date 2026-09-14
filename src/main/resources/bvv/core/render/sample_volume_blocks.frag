@@ -30,17 +30,22 @@ uniform vec3 lutOffset;
 float sampleVolume( vec4 wpos )
 {
 	vec3 pos = (im * wpos).xyz;
+	
 	// Clamp tile lookup to minimum tile 0 so we don't hit the zero-LUT pad
 	vec3 qPos = max( vec3( 0.0 ), pos );
+	
 	vec3 tileIndex = floor( qPos / blockSize );
-	vec3 q = tileIndex - lutOffset + 0.5;
+	
+	// normalized sampling coordinate [0.0, 1.0] for lutSampler
+	vec3 q = (tileIndex - lutOffset + 0.5) / lutSize;
 
-	uvec4 lutv = texture( lutSampler, q / lutSize );
-	vec3 B0 = lutv.xyz * paddedBlockSize + cachePadOffset;
+	uvec4 lutv = texture( lutSampler, q );
+	vec3 B0 = vec3(lutv.xyz) * paddedBlockSize + cachePadOffset;
 	vec3 sj = blockScales[ lutv.w ];
 	
-	vec3 relativePos = pos - tileIndex * blockSize;
-	vec3 c0 = B0 + relativePos * sj + 0.5 * sj;
+	vec3 tileIndexCoarse = floor( qPos / ( blockSize * sj ) );
+	vec3 relativePos = pos - tileIndexCoarse * (blockSize * sj);
+	vec3 c0 = B0 + relativePos * sj + 0.5;
 
 	return texture( volumeCache, c0 / cacheSize ).r;
 }
