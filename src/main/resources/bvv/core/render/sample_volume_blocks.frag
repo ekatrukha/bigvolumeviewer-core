@@ -1,5 +1,3 @@
-#define NUM_BLOCK_SCALES 10
-
 uniform mat4 im;
 uniform vec3 sourcemin;
 uniform vec3 sourcemax;
@@ -8,36 +6,37 @@ void intersectBoundingBox( vec4 wfront, vec4 wback, out float tnear, out float t
 {
 	vec4 mfront = im * wfront;
 	vec4 mback = im * wback;
-	intersectBox( mfront.xyz, (mback - mfront).xyz, sourcemin, sourcemax, tnear, tfar );
+	intersectBox( mfront.xyz, (mback - mfront).xyz, sourcemin - 0.5, sourcemax + 0.5, tnear, tfar );
 }
 
-uniform sampler3D volumeCache;
 
-// -- comes from CacheSpec -----
-uniform vec3 blockSize;
-uniform vec3 paddedBlockSize;
-uniform vec3 cachePadOffset;
-
-// -- comes from TextureCache --
-uniform vec3 cacheSize;// TODO: get from texture!?
-
-
-uniform usampler3D lutSampler;
 uniform vec3 blockScales[ NUM_BLOCK_SCALES ];
-uniform vec3 lutSize;
 uniform vec3 lutOffset;
+uniform int cacheType;
+uniform int cacheLutZOffset;
 
 float sampleVolume( vec4 wpos )
 {
-	vec3 pos = (im * wpos).xyz + 0.5;
-	vec3 q = floor( pos / blockSize ) - lutOffset + 0.5;
-
-	uvec4 lutv = texture( lutSampler, q / lutSize );
-	vec3 B0 = lutv.xyz * paddedBlockSize + cachePadOffset;
+	vec3 pos = (im * wpos).xyz;
+	
+	// Clamp position to non-negative coordinates
+	vec3 qPos = max( vec3( 0.0 ), pos );
+	
+	// Initial lookup using base resolution tile grid
+	vec3 tileIndexBase = floor( qPos / cacheBlockSize );
+	
+	ivec3 localQ = ivec3( tileIndexBase - lutOffset );
+	ivec3 globalQ = ivec3( localQ.x, localQ.y, localQ.z + cacheLutZOffset );	
+	uvec4 lutv = texelFetch( globalCacheLut, globalQ, 0 );
+	
+	vec3 B0 = vec3( lutv.xyz ) * paddedBlockSize + cachePadOffset;
 	vec3 sj = blockScales[ lutv.w ];
-
-	vec3 c0 = B0 + mod( pos * sj, blockSize ) + 0.5 * sj;
-	                                       // + 0.5 ( sj - 1 )   + 0.5 for tex coord offset
-
-	return texture( volumeCache, c0 / cacheSize ).r;
+	
+	// Correct coarse tile origin alignment for sj > 1
+	vec3 tileIndexCoarse = floor( qPos / ( cacheBlockSize * sj ) );
+	vec3 relativePos = pos - tileIndexCoarse * ( cacheBlockSize * sj );
+	
+	// Calculate normalized cache coordinate
+	vec3 c0 = ( B0 + relativePos * sj + 0.5 ) / cacheSize[cacheType];
+	return texture( u_Caches[cacheType], c0 ).r;
 }
