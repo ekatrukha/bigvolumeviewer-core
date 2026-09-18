@@ -25,10 +25,10 @@ public class DebugVolumeNumber
 {
 	public static < T extends RealType< T > & NativeType< T >> void main( final String[] args )
 	{
-		int nMaxVolumesToTry = 30;
+		int nMaxVolumesToTry = 6;
 		int nVolumeEdge = 50;
 
-        double spreadCoeff = 2.5;
+        double spreadCoeff = 1.01;
         
 		int numThreads = 8;
 		int numQueueLevels = 10;

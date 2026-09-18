@@ -19,28 +19,30 @@ float sampleVolume( vec4 wpos )
 {
 	vec3 pos = (im * wpos).xyz;
 	
-	// 1. Calculate tile index on RAW pos (do NOT clamp with max(0.0) first!)
-	vec3 tileIndexBase = floor( pos / cacheBlockSize );
+	// Clamp tile lookup to minimum tile 0 so we don't hit the zero-LUT pad
+	vec3 qPos = max( vec3( 0.0 ), pos );
 	
-	ivec3 localQ = ivec3( tileIndexBase - lutOffset );
-
-	// 2. Strict bounds check: now correctly catches negative pos (< 0) and outer bounds (>= lutSize)
-	if ( any( lessThan( localQ, ivec3( 0 ) ) ) || any( greaterThanEqual( localQ, ivec3( lutSize ) ) ) )
-	    return 0.0;
+	vec3 tileIndex = floor( qPos / cacheBlockSize );
 	
-	ivec3 globalQ = ivec3( localQ.x, localQ.y, localQ.z + cacheLutZOffset );	
-	uvec4 lutv = texelFetch( globalCacheLut, globalQ, 0 );
+	ivec3 localQ = ivec3( tileIndex - lutOffset );
 	
-	vec3 B0 = vec3( lutv.xyz ) * paddedBlockSize + cachePadOffset;
+	//if ( any( lessThan( localQ, ivec3( 0 ) ) ) || any( greaterThanEqual( localQ, ivec3( lutSize ) ) ) )
+	//    return 0.0;
+	
+	// normalized sampling coordinate [0.0, 1.0] for lutSampler
+	//vec3 q = (localQ + 0.5) / lutSize;
+	vec3 q = (localQ + 0.5);
+	q.z += cacheLutZOffset;
+	q /= globalCacheLutSize;
+	
+	uvec4 lutv = texture( globalCacheLut, q );
+	
+	vec3 B0 = vec3(lutv.xyz) * paddedBlockSize + cachePadOffset;
 	vec3 sj = blockScales[ lutv.w ];
 	
-	// 3. Coarse tile origin alignment for multiscale levels (sj > 1)
-	vec3 tileIndexCoarse = floor( pos / ( cacheBlockSize * sj ) );
-	vec3 relativePos = pos - tileIndexCoarse * ( cacheBlockSize * sj );
-	
-	// 4. Clamp continuous position within block boundaries to prevent trilinear filtering bleeding
-	vec3 localCachePos = clamp( relativePos * sj, vec3( 0.0 ), cacheBlockSize );
-	vec3 c0 = ( B0 + localCachePos + 0.5 ) / cacheSize[cacheType];
+	vec3 tileIndexCoarse = floor( qPos / ( cacheBlockSize * sj ) );
+	vec3 relativePos = pos - tileIndexCoarse * (cacheBlockSize * sj);
+	vec3 c0 = B0 + relativePos * sj + 0.5;
 
-	return texture( u_Caches[cacheType], c0 ).r;
+	return texture( u_Caches[cacheType], c0/ cacheSize[cacheType] ).r;
 }
