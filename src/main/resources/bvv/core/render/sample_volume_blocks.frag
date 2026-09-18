@@ -36,8 +36,13 @@ float sampleVolume( vec4 wpos )
 	
 	vec3 tileIndex = floor( qPos / blockSize );
 	
+	ivec3 localQ = ivec3( tileIndex - lutOffset );
+	
+	if ( any( lessThan( localQ, ivec3( 0 ) ) ) || any( greaterThanEqual( localQ, ivec3( lutSize ) ) ) )
+	    return 0.0;
+	    
 	// normalized sampling coordinate [0.0, 1.0] for lutSampler
-	vec3 q = (tileIndex - lutOffset + 0.5) / lutSize;
+	vec3 q = (localQ + 0.5) / lutSize;
 
 	uvec4 lutv = texture( lutSampler, q );
 	vec3 B0 = vec3(lutv.xyz) * paddedBlockSize + cachePadOffset;
