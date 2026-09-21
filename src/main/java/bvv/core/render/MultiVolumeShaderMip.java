@@ -262,7 +262,7 @@ public class MultiVolumeShaderMip
 				"lutSampler", "blockScales", "lutSize", "lutOffset", "sampleVolume" ) );
 		segments.put( SegmentType.SampleVolume, new SegmentTemplate(
 				"sample_volume_simple.frag",
-				"im", "sourcemax", "intersectBoundingBox",
+				"im", "sourcemin", "sourcemax", "intersectBoundingBox",
 				"volume", "sampleVolume" ) );
 		segments.put( SegmentType.SampleRGBAVolume, new SegmentTemplate(
 				"sample_volume_simple_rgba.frag",
@@ -632,6 +632,7 @@ public class MultiVolumeShaderMip
 	{
 		private final UniformSampler uniformVolumeSampler;
 		private final UniformMatrix4f uniformIm;
+		private final Uniform3f uniformSourcemin;
 		private final Uniform3f uniformSourcemax;
 
 		public VolumeSimpleSegment( final SegmentedShader prog, final Segment volume )
@@ -639,6 +640,7 @@ public class MultiVolumeShaderMip
 			super( volume );
 			uniformVolumeSampler = prog.getUniformSampler( volume, "volume" );
 			uniformIm = prog.getUniformMatrix4f( volume, "im" );
+			uniformSourcemin = prog.getUniform3f( volume, "sourcemin" );
 			uniformSourcemax = prog.getUniform3f( volume, "sourcemax" );
 		}
 
@@ -646,6 +648,7 @@ public class MultiVolumeShaderMip
 		{
 			uniformVolumeSampler.set( volume.getVolumeTexture() );
 			uniformIm.set( volume.getIms() );
+			uniformSourcemin.set( volume.getSourceMin() );
 			uniformSourcemax.set( volume.getSourceMax() );
 		}
 	}
